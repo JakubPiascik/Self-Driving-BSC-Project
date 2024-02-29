@@ -1,0 +1,13 @@
+import
+
+Class for environment
+
+function defining action and observation space
+
+connecting to sim
+
+step function
+    reward
+    completed - true/false
+
+    return observation(camera) reward done {}
