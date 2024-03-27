@@ -3,7 +3,7 @@ import os
 import time
 import torch
 from stable_baselines3.common.vec_env import SubprocVecEnv
-from ppo_carenv import CarlaEnv  # Ensure this is the correct import path for your environment
+from env_steeronly import CarlaEnv  # Ensure this is the correct import path for your environment
 
 
 def main():
@@ -30,11 +30,11 @@ def main():
     print('Env action space:',env.action_space)
     env.reset()
     print('Env has been reset as part of launch')
-    model = PPO('MlpPolicy', env, verbose=1,learning_rate=0.002, tensorboard_log=logdir)
+    model = PPO('MlpPolicy', env, verbose=1,learning_rate=0.001, tensorboard_log=logdir)
 
-    TIMESTEPS = 10_000  # How long is each training iteration - individual steps
+    TIMESTEPS = 5_000  # How long is each training iteration - individual steps
     iters = 0
-    while iters < 100:
+    while iters < 4:
         iters += 1
         print(f'Iteration {iters} is to commence...')
         model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name=f"PPO")

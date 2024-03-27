@@ -3,14 +3,14 @@ import os
 import time
 import torch
 from stable_baselines3.common.vec_env import SubprocVecEnv
-from ppo_carenv import CarlaEnv  # Ensure this is the correct import path for your environment
-from ppo_policy import CustomCNN
+from env_steeronly import CarlaEnv  # Ensure this is the correct import path for your environment
+
 
 def main():
     print('This is the start of the training script')
     print('Setting folders for logs and models')
 
-    models_dir = "C:\CARLA\CARLA_0.9.15\WindowsNoEditor\ProjectFiles\RL\PPO\ppo_models\\1711385188"
+    models_dir = "C:\CARLA\CARLA_0.9.15\WindowsNoEditor\ProjectFiles\RL\PPO\ppo_models\\1711556560"
     logdir = f"logs/{int(time.time())}/"
 
     try:
@@ -31,8 +31,8 @@ def main():
     env.reset()
     print('Env has been reset as part of launch')
 
-    initial_model_name = "215000"
-    model_path = f"{models_dir}\\215000"
+    initial_model_name = "20000"
+    model_path = f"{models_dir}\\20000"
     model = PPO.load(model_path, env=env)
     ('Model has been loaded')
 

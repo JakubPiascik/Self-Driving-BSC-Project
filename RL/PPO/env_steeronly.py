@@ -10,13 +10,12 @@ from collections import deque
 import tensorflow as tf
 from tensorflow.keras.models import load_model
 
-SECONDS_PER_EPISODE = 60
+SECONDS_PER_EPISODE = 15
 
 N_CHANNELS = 3
 HEIGHT = 240
 WIDTH = 320
 
-FIXED_DELTA_SECONDS = 0.2
 
 SPIN = 8
 
@@ -33,7 +32,7 @@ class CarlaEnv(gym.Env):
     front_camera = None
     CAMERA_POS_Z = 1.3 
     CAMERA_POS_X = 1.4
-    PREFERRED_SPEED = 10
+    PREFERRED_SPEED = 15
     SPEED_THRESHOLD = 2 #defines when we get close to desired speed so we drop the
     KMH_BUFFER_LEN = 15 #number of recent timesteps to calculate average speed over
 
@@ -44,7 +43,7 @@ class CarlaEnv(gym.Env):
             # Define action and observation space
             # They must be gym.spaces objects
             #descrete actions
-        self.action_space = spaces.MultiDiscrete([9,9,4])
+        self.action_space = spaces.MultiDiscrete([9])
         # 9 discrete for 9 different steering angles
         #4 for throttle/braking
         self.kmh_buffer = []
@@ -56,18 +55,16 @@ class CarlaEnv(gym.Env):
         self.new_width = self.width_to - self.width_from
         self.image_for_CNN = None
             
-        self.observation_space = spaces.Box(low=0, high=1.0,
-                                            shape=(HEIGHT, WIDTH, N_CHANNELS), dtype=np.uint8)
+        self.observation_space = spaces.Box(low=0.0, high=1.0,
+                                            shape=(7, 18, 8), dtype=np.float32)
                 
         self.client = carla.Client(host, port)
         self.client.set_timeout(40.0)
         self.world = self.client.get_world()
-     
             
         self.settings = self.world.get_settings()
-        self.settings.no_rendering_mode = True
+        self.settings.no_rendering_mode = not self.SHOW_CAM
         self.settings.synchronous_mode = False
-        self.settings.fixed_delta_seconds = FIXED_DELTA_SECONDS
         self.world.apply_settings(self.settings)
         self.blueprint_library = self.world.get_blueprint_library()
         self.model_3 = self.blueprint_library.filter("model3")[0]
@@ -75,6 +72,8 @@ class CarlaEnv(gym.Env):
         self.cnn_model = load_model('C:\CARLA\CARLA_0.9.15\WindowsNoEditor\ProjectFiles\RL\PPO\model_saved_from_CNN.h5',compile=False)
         self.cnn_model.compile()
         
+        if self.SHOW_CAM:
+            self.spectator = self.world.get_spectator()	
 
     def cleanup(self):
 
@@ -84,43 +83,63 @@ class CarlaEnv(gym.Env):
             actor.destroy()
         cv2.destroyAllWindows()
 
+    def maintain_speed(self,s):
+        if s >= self.PREFERRED_SPEED:
+            return 0
+        elif s < self.PREFERRED_SPEED - self.SPEED_THRESHOLD:
+            return 0.7
+        else:
+            return 0.3
 
     def step(self, action):
+        trans = self.vehicle.get_transform()
+        if self.SHOW_CAM:
+            self.spectator.set_transform(carla.Transform(trans.location + carla.Location(z=20),carla.Rotation(yaw =-180, pitch=-90)))
+
         self.step_counter +=1
+        steer = action[0]
+		
+		# map steering actions
+        if steer ==0:
+            steer = - 0.9
+        elif steer ==1:
+            steer = -0.25
+        elif steer ==2:
+            steer = -0.1 
+        elif steer ==3:
+            steer = -0.05
+        elif steer ==4:
+            steer = 0.0 
+        elif steer ==5:
+            steer = 0.05
+        elif steer ==6:
+            steer = 0.1
+        elif steer ==7:
+            steer = 0.25
+        elif steer ==8:
+            steer = 0.9
+		
+		# optional - print steer and throttle every 50 steps
+        if self.step_counter % 50 == 0:
+            print('steer input from model:',steer)
+		
+        v = self.vehicle.get_velocity()
+        kmh = int(3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2))
+        estimated_throttle = self.maintain_speed(kmh)
+		# map throttle and apply steer and throttle	
+        self.vehicle.apply_control(carla.VehicleControl(throttle=estimated_throttle, steer=steer, brake = 0.0))
 
-        
-        # Steering, throttle, and brake mappings based on action space indices
-        steer_values = [-0.9, -0.25, -0.1, -0.05, 0.0, 0.05, 0.1, 0.25, 0.9]
-        throttle_values = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.65, 0.8, 1.0]
-        brake_values = [0.0, 0.33, 0.66, 1.0]  # Hypothetical brake values for illustration
-
-        # Assuming 'action' is received from the environment, representing indices for each control
-        steer_index, throttle_index, brake_index = action
-
-        # Assign the corresponding values based on the action indices
-        steer = steer_values[steer_index]
-        throttle = throttle_values[throttle_index]
-        brake = brake_values[brake_index]
-
-
-        #prints inputs every 30 steps
-        if self.step_counter % 30 == 0:
-            print('Steer input from model:',steer,',throttle: ',throttle)
-
-        self.vehicle.apply_control(carla.VehicleControl(throttle=throttle, steer=steer, brake=brake))   
-
-       
 
         distance_travelled = self.initial_location.distance(self.vehicle.get_location())
 
-        #creates camera
+		# storing camera to return at the end in case the clean-up function destroys it
         cam = self.front_camera
-
+		# showing image
         if self.SHOW_CAM:
-            cv2.imshow('Camera', cam)
+            cv2.imshow('Sem Camera', cam)
             cv2.waitKey(1)
 
-        #prevents the vehicle from chasing its tail
+		# track steering lock duration to prevent "chasing its tail"
         lock_duration = 0
         if self.steering_lock == False:
             if steer<-0.6 or steer>0.6:
@@ -129,62 +148,41 @@ class CarlaEnv(gym.Env):
         else:
             if steer<-0.6 or steer>0.6:
                 lock_duration = time.time() - self.steering_lock_start
-
-        #rewards 
+		
+		# start defining reward from each step
         reward = 0
         done = False
-        #punish for collision
+		#punish for collision
         if len(self.collision_hist) != 0:
             done = True
             reward = reward - 300
             self.cleanup()
         if len(self.lane_invade_hist) != 0:
-            # done = True
-            reward = reward - 200
-            # self.cleanup()
-
-        #lock ups
-        if lock_duration > 3:
+            done = True
+            reward = reward - 300
+            self.cleanup()
+		# punish for steer lock up
+        if lock_duration>3:
             reward = reward - 150
             done = True
             self.cleanup()
         elif lock_duration > 1:
-            reward = reward - 25
-
-        #gets velocity
-        v = self.vehicle.get_velocity()
-        #calculates km/h
-        kmh = int(3.6 *math.sqrt(v.x**2 +v.y**2 +v.z**2))
-        self.kmh_buffer.append(kmh)
-		#calculate average speed over the last timsteps steps
-        avg_kmh = sum(self.kmh_buffer) / len(self.kmh_buffer)
-    
-        #acceleration
-        if avg_kmh < 0.1:
-            reward = reward - 10
-        elif avg_kmh < 1:
-            reward = reward - 5
-        elif avg_kmh < 5:
-            reward = reward - 2
-        elif avg_kmh <= 15:
+            reward = reward - 20
+			
+        if distance_travelled<30:
             reward = reward - 1
-        elif avg_kmh > 15 and avg_kmh< 40:
-            reward = reward + 3
-        elif avg_kmh > 60:
-            reward = reward - 5
-                  
-
-        if distance_travelled < 30:
-            reward = reward - 1
-        elif distance_travelled < 50:
-            reward = reward + 1
+        elif distance_travelled<50:
+            reward =  reward + 1
         else:
             reward = reward + 2
-        #checks for episode duration
+		# check for episode duration
         if self.episode_start + SECONDS_PER_EPISODE < time.time():
             done = True
             self.cleanup()
-        return cam/255.0, reward, done, {}	#curly brackets - empty dictionary required by SB3 format
+        self.image_for_CNN = self.apply_cnn(self.front_camera[self.height_from:,self.width_from:self.width_to])
+
+        return self.image_for_CNN, reward, done, {}	#curly brackets - empty dictionary required by SB3 format
+
 
     def apply_cnn(self,im):
         img_tensor = tf.convert_to_tensor(im, dtype=tf.float32) / 255.0
@@ -233,12 +231,6 @@ class CarlaEnv(gym.Env):
         trans.rotation.yaw = trans.rotation.yaw + angle_adj
         self.vehicle.set_transform(trans)
 
-		# showing camera at the spawn point
-        if self.SHOW_CAM:
-            cv2.namedWindow('Sem Camera',cv2.WINDOW_AUTOSIZE)
-            cv2.imshow('Sem Camera', self.front_camera)
-            cv2.waitKey(1)
-        
         colsensor = self.blueprint_library.find("sensor.other.collision")
         self.colsensor = self.world.spawn_actor(colsensor, camera_init_trans, attach_to=self.vehicle)
         self.actor_list.append(self.colsensor)
@@ -257,8 +249,9 @@ class CarlaEnv(gym.Env):
         self.steering_lock_start = None # this is to count time in steering lock and start penalising for long time in steering lock
         self.step_counter = 0
         self.vehicle.apply_control(carla.VehicleControl(throttle=0.0, brake=0.0))
-
-        return self.front_camera/255.0
+        
+        self.image_for_CNN = self.apply_cnn(self.front_camera[self.height_from:,self.width_from:self.width_to])
+        return self.image_for_CNN
 
 
     def process_img(self, image):
@@ -274,6 +267,3 @@ class CarlaEnv(gym.Env):
 
     def lane_data(self, event):
         self.lane_invade_hist.append(event)
-	
-    def seed(self, seed=None):
-        pass
