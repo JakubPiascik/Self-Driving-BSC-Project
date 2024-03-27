@@ -42,7 +42,7 @@ class CarlaEnv(gym.Env):
                                             shape=(HEIGHT, WIDTH, N_CHANNELS), dtype=np.uint8)
                 
         self.client = carla.Client(host, port)
-        self.client.set_timeout(3.0)
+        self.client.set_timeout(5.0)
         self.world = self.client.get_world()
 
             
@@ -120,8 +120,8 @@ class CarlaEnv(gym.Env):
         # else:
         #     self.vehicle.apply_control(carla.VehicleControl(throttle=1.0, steer=steer, brake=0.0))
 
-        #prints inputs every 50 steps
-        if self.step_counter % 50 == 0:
+        #prints inputs every 30 steps
+        if self.step_counter % 30 == 0:
             print('Steer input from model:',steer,',throttle: ',throttle)
 
         #gets velocity

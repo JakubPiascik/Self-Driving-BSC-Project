@@ -1,16 +1,16 @@
-from stable_baselines3 import DQN
+from stable_baselines3 import PPO
 import os
 import time
-from custom_policy import CustomMLP
 import torch
 from stable_baselines3.common.vec_env import SubprocVecEnv
-from carenv import CarlaEnv  # Ensure this is the correct import path for your environment
+from environment import CarlaEnv  # Ensure this is the correct import path for your environment
+
 
 def main():
     print('This is the start of the training script')
     print('Setting folders for logs and models')
 
-    models_dir = f"models/{int(time.time())}/"
+    models_dir = f"ppo_models/{int(time.time())}/"
     logdir = f"logs/{int(time.time())}/"
 
     try:
@@ -25,26 +25,14 @@ def main():
 
     print('Connecting to environments...')
 
-    # Number of environments running at once
-    num_envs = 1
 
-    def make_env():
-        def _init():
-            return CarlaEnv()  # Create an instance of the environment
-        return _init
+    env = CarlaEnv()
+    print('Env action space:',env.action_space)
+    env.reset()
+    print('Env has been reset as part of launch')
+    model = PPO('MlpPolicy', env, verbose=1,learning_rate=0.001, tensorboard_log=logdir)
 
-    # Create multiple instances of the environment, each in its own subprocess
-    env = SubprocVecEnv([make_env() for _ in range(num_envs)])
-
-    # Defines custom MLP policy
-    policy_kwargs = dict(
-        features_extractor_class=CustomMLP,
-        features_extractor_kwargs=dict(features_dim=256),
-    )
-
-    model = DQN('MlpPolicy', env, policy_kwargs=policy_kwargs, buffer_size=90000, verbose=1, learning_rate=0.001, tensorboard_log=logdir)
-
-    TIMESTEPS = 5_000  # How long is each training iteration - individual steps
+    TIMESTEPS = 1_000  # How long is each training iteration - individual steps
     iters = 0
     while iters < 4:
         iters += 1
