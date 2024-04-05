@@ -32,7 +32,7 @@ class CarlaEnv(gym.Env):
     front_camera = None
     CAMERA_POS_Z = 1.3 
     CAMERA_POS_X = 1.4
-    PREFERRED_SPEED = 15
+    PREFERRED_SPEED = 25
     SPEED_THRESHOLD = 2 #defines when we get close to desired speed so we drop the
     KMH_BUFFER_LEN = 15 #number of recent timesteps to calculate average speed over
 

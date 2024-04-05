@@ -1,10 +1,10 @@
 # to test a model 
 from stable_baselines3 import PPO
-from ppo_carenv import CarlaEnv 
+from env_steeronly import CarlaEnv 
 from stable_baselines3.common.vec_env import DummyVecEnv
 
 #update here
-models_dir = "C:\CARLA\CARLA_0.9.15\WindowsNoEditor\ProjectFiles\RL\PPO\ppo_models\\1711472022"
+models_dir = "C:\CARLA\CARLA_0.9.15\WindowsNoEditor\ProjectFiles\RL\PPO\ppo_models\\1711556560"
 
 def make_env():
     def _init():
@@ -15,7 +15,7 @@ def make_env():
 env = DummyVecEnv([make_env()])  # This correctly vectorizes the environment
 
 #and update here
-model_path = f"{models_dir}\\160000.zip"
+model_path = f"{models_dir}\\560000.zip"
 model = PPO.load(model_path, env=env)
 
 episodes = 5

@@ -31,12 +31,12 @@ def main():
     env.reset()
     print('Env has been reset as part of launch')
 
-    initial_model_name = "20000"
-    model_path = f"{models_dir}\\20000"
+    initial_model_name = "520000"
+    model_path = f"{models_dir}\\520000"
     model = PPO.load(model_path, env=env)
     ('Model has been loaded')
 
-    TIMESTEPS = 20_000  # How long is each training iteration - individual steps
+    TIMESTEPS = 40_000  # How long is each training iteration - individual steps
     current_timesteps = int(initial_model_name)
 
     iters = 0
