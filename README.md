@@ -31,11 +31,11 @@ This repository contains the implementation of two reinforcement learning algori
 5. If you wish to test a trained model, modification of the directory is required in ppo_test.py
 
    
-##Authors
+## Authors
 - Jakub Piascik
 - Piascik80@gmail.com
 
-##Citations
+## Citations
 @inproceedings{Dosovitskiy17,
   title = {{CARLA}: {An} Open Urban Driving Simulator},
   author = {Alexey Dosovitskiy and German Ros and Felipe Codevilla and Antonio Lopez and Vladlen Koltun},
