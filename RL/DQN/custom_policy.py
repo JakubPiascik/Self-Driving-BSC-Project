@@ -1,3 +1,5 @@
+#Custom policy which was tested but due to time limitations not implemented as results were worse than the default
+
 import torch.nn as nn
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 

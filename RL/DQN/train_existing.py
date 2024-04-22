@@ -1,3 +1,4 @@
+# This is identical to train.py but loads in a previously trained model using models_dir
 from stable_baselines3 import DQN
 import os
 import time

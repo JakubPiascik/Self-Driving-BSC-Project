@@ -1,3 +1,5 @@
+# Carla environment steer only just as discussed in PPO
+
 import carla
 import gym
 from gym import spaces

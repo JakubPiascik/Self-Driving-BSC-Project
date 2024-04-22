@@ -1,3 +1,6 @@
+#First training script
+# Includes the creation of multiple environments 
+
 from stable_baselines3 import DQN
 import os
 import time

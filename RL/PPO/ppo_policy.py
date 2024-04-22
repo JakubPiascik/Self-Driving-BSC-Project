@@ -1,3 +1,5 @@
+#A previously created custom CNN that was implemnted into PPO but the results were poor and time limitations didn't allow for further testing
+
 # import torch.nn as nn
 # from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 

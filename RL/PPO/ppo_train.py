@@ -1,3 +1,6 @@
+# Initialisation of env and PPO from SB3
+# This model is trained for 'timesteps' over however many 'iterations'
+
 from stable_baselines3 import PPO
 import os
 import time
@@ -32,9 +35,9 @@ def main():
     print('Env has been reset as part of launch')
     model = PPO('MlpPolicy', env, verbose=1,learning_rate=0.001, tensorboard_log=logdir)
 
-    TIMESTEPS = 5_000  # How long is each training iteration - individual steps
+    TIMESTEPS = 50_000  # How long is each training iteration - individual steps
     iters = 0
-    while iters < 4:
+    while iters < 20:
         iters += 1
         print(f'Iteration {iters} is to commence...')
         model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name=f"PPO")

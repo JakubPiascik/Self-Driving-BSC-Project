@@ -1,4 +1,5 @@
-# to test a model 
+# testing script created to record any iteration of a model
+# this gathered total reward over 'episodes' is then displayed
 from stable_baselines3 import PPO
 from env_steeronly import CarlaEnv 
 from stable_baselines3.common.vec_env import DummyVecEnv
