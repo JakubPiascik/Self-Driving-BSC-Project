@@ -1,4 +1,4 @@
-# Project Title: Autonomous Vehicle Navigation with DQN and PPO
+# Autonomous Vehicle Navigation with DQN and PPO
 
 ## Description
 This repository contains the implementation of two reinforcement learning algorithms, Deep Q-Network (DQN) and Proximal Policy Optimization (PPO), applied to autonomous vehicle navigation in the CARLA simulation environment. The project's objective is to evaluate the learning efficiency of these models in terms of average reward and loss values.
